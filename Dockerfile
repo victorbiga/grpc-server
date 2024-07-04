@@ -1,9 +1,5 @@
 # Use golang base image for the build stage
-FROM golang:1.22 AS builder
-
-# Install any dependencies required for your application
-# For example, if you need git to fetch dependencies:
-# RUN apt-get update && apt-get install -y --no-install-recommends git
+FROM golang:1.18 AS builder
 
 # Set the working directory inside the container
 WORKDIR /app
@@ -19,7 +15,6 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o server .
 
 # Use a minimal base image for the final stage
-# This ensures the image size is minimized
 FROM gcr.io/distroless/base-debian10
 
 # Copy the compiled binary from the builder stage
