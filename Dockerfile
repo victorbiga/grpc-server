@@ -1,5 +1,5 @@
 # Use golang base image for the build stage
-FROM --platform=linux/amd64 golang:1.22 AS builder
+FROM golang:1.22 AS builder
 
 # Install any dependencies required for your application
 # For example, if you need git to fetch dependencies:
