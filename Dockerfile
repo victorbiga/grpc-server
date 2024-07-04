@@ -1,27 +1,26 @@
-# Use golang base image for the build stage
-FROM golang:1.22 AS builder
-
-# Set the working directory inside the container
-WORKDIR /app
-
-# Copy the Go module files and download dependencies
-COPY go.mod go.sum ./
+FROM golang:1.22 as builder
+WORKDIR /workspace
+# Copy the Go Modules manifests
+COPY go.mod go.mod
+COPY go.sum go.sum
+# cache deps before building and copying source so that we don't need to re-download as much
+# and so that source changes don't invalidate our downloaded layer
 RUN go mod download
 
-# Copy the rest of the application source code
+# Copy the go source
 COPY . .
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o server .
+# Build
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o server main.go
 
-# Use a minimal base image for the final stage
-FROM gcr.io/distroless/base-debian10
-
-# Copy the compiled binary from the builder stage
-COPY --from=builder /app/server /
-
+# Use distroless as minimal base image to package the manager binary
+# Refer to https://github.com/GoogleContainerTools/distroless for more details
+FROM alpine:latest
 # Expose the port that the server listens on
 EXPOSE 50051
 
-# Command to run the server executable
-CMD ["/server"]
+RUN apk update
+RUN apk add --no-cache bash curl jq
+WORKDIR /
+COPY --from=builder /workspace/server .
+ENTRYPOINT ["/server"]
