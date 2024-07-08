@@ -33,7 +33,7 @@ import (
 	hwpb "google.golang.org/grpc/examples/helloworld/helloworld"
 )
 
-var port = flag.Int("port", 50051, "the port to serve on")
+var port = flag.Int("port", 443, "the port to serve on")
 
 // hwServer is used to implement helloworld.GreeterServer.
 type hwServer struct {
@@ -42,15 +42,30 @@ type hwServer struct {
 
 // SayHello implements helloworld.GreeterServer
 func (s *hwServer) SayHello(ctx context.Context, in *hwpb.HelloRequest) (*hwpb.HelloReply, error) {
+	log.Printf("Received SayHello request: %v", in)
 	return &hwpb.HelloReply{Message: "Hello " + in.Name}, nil
 }
 
+// ecServer is used to implement echo.EchoServer.
 type ecServer struct {
 	ecpb.UnimplementedEchoServer
 }
 
 func (s *ecServer) UnaryEcho(ctx context.Context, req *ecpb.EchoRequest) (*ecpb.EchoResponse, error) {
+	log.Printf("Received UnaryEcho request: %v", req)
 	return &ecpb.EchoResponse{Message: req.Message}, nil
+}
+
+// unaryInterceptor is a simple unary interceptor that logs each request.
+func unaryInterceptor(
+	ctx context.Context,
+	req interface{},
+	info *grpc.UnaryServerInfo,
+	handler grpc.UnaryHandler,
+) (interface{}, error) {
+	log.Printf("Received request: %v at method: %s", req, info.FullMethod)
+	// Calls the handler
+	return handler(ctx, req)
 }
 
 func main() {
@@ -61,12 +76,14 @@ func main() {
 	}
 	fmt.Printf("server listening at %v\n", lis.Addr())
 
-	s := grpc.NewServer()
+	s := grpc.NewServer(
+		grpc.UnaryInterceptor(unaryInterceptor), // Register the interceptor
+	)
 
 	// Register Greeter on the server.
 	hwpb.RegisterGreeterServer(s, &hwServer{})
 
-	// Register RouteGuide on the same server.
+	// Register Echo on the same server.
 	ecpb.RegisterEchoServer(s, &ecServer{})
 
 	// Register reflection service on gRPC server.
