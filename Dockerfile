@@ -17,7 +17,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o server m
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM alpine:latest
 # Expose the port that the server listens on
-EXPOSE 50051
+EXPOSE 443
 
 RUN apk update
 RUN apk add --no-cache bash curl jq
